@@ -202,7 +202,7 @@ int main()
       vector<string> words = split_line(line);
       if (words.size() > 3)
       {
-         cout << line << endl;
+         cout << line;
          if ((words[2] == "T") || (words[2] == "t") || (words[2] == "W") || (words[2] == "w"))
          {
             long start_addr = convert_str_2_long(words[0]);
@@ -212,7 +212,8 @@ int main()
       }
    }
 
-   printf("[extract_call_sites] %ld functions in the original binary \n", func_name.size());
+
+   printf("\n[extract_call_sites] %ld functions in the original binary \n", func_name.size());
    fclose(fp3);
 
    int size = (int)(func_name.size() / N);

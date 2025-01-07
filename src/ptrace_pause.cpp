@@ -144,7 +144,7 @@ bool ptrace_single_step_intel64(pid_t tid, void* lib_addr, struct user_regs_stru
    else {
       int sig = WSTOPSIG(status);	
       if (sig != SIGTRAP){
-         char *sig_str = strdup(_sys_siglist[sig]);
+         char *sig_str = strdup(strsignal(sig));
 
          #ifdef DEBUG_INFO
          printf("[tracer][error] tracee deliver a signal %s\n", sig_str);
@@ -205,7 +205,7 @@ void ptrace_cont_intel64(pid_t tid, struct user_regs_struct &regs, struct user_r
    }
    else {
       int sig = WSTOPSIG(status);	
-      char *sig_str = strdup(_sys_siglist[sig]);
+      char *sig_str = strdup(strsignal(sig));
       if (sig != SIGSTOP){
          printf("[tracer][error] after PTRACE_CONT, thread %d delivers a non-SIGSTOP signal: %s\n", threadid, sig_str);
          if (ptrace(PTRACE_SETREGS, tid, NULL, &old_regs)!=0){
@@ -308,7 +308,7 @@ bool ptrace_single_step_aarch64(pid_t tid, void *lib_addr, struct user_regs_stru
       int sig = WSTOPSIG(status);
       if (sig != SIGTRAP)
       {
-         char *sig_str = strdup(_sys_siglist[sig]);
+         char *sig_str = strdup(strsignal(sig));
 
 #ifdef DEBUG_INFO
          printf("[tracer][error] tracee deliver a signal %s\n", sig_str);
@@ -393,7 +393,7 @@ void ptrace_cont_aarch64(pid_t tid, struct user_regs_struct &regs, struct user_r
    else
    {
       int sig = WSTOPSIG(status);
-      char *sig_str = strdup(_sys_siglist[sig]);
+      char *sig_str = strdup(strsignal(sig));
       if (sig != SIGSTOP)
       {
          printf("[tracer][error] after PTRACE_CONT, thread %d delivers a non-SIGSTOP signal: %s\n", threadid, sig_str);

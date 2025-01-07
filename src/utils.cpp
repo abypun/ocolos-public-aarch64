@@ -24,6 +24,7 @@ ocolos_env::ocolos_env(){
    ocolos_env::perf2bolt_path       = ocolos_env::get_binary_path("perf2bolt");
    
    ocolos_env::client_binary_path   = ocolos_env::get_binary_path("mysql");
+   ocolos_env::client_socket        = ocolos_env::get_binary_path("socket");
 
    ocolos_env::listen_fd            = socket(PF_INET, SOCK_STREAM, 0);   
 }
@@ -132,12 +133,20 @@ void ocolos_env::get_cmds(){
    ocolos_env::init_benchmark_cmd = ocolos_env::configs["init_benchmark_cmd"];
    ocolos_env::run_benchmark_cmd = ocolos_env::configs["run_benchmark_cmd"]; 
    
+   if (ocolos_env::configs.find("mysql_bind_cpus")!=ocolos_env::configs.end()){
+      ocolos_env::mysql_bind_cpus = ocolos_env::configs["mysql_bind_cpus"];
+   }
+   if (ocolos_env::configs.find("sysbench_bind_cpus")!=ocolos_env::configs.end()){
+      ocolos_env::sysbench_bind_cpus = ocolos_env::configs["sysbench_bind_cpus"];
+   }
+
    ocolos_env::target_binary_path = split_line(ocolos_env::run_server_cmd)[0];
 
    vector<string> run_benchmark_cmd_args = split_line(ocolos_env::run_benchmark_cmd);
 
    bool has_db = false;
    bool has_user = false;
+   bool has_password = false;
    for (unsigned int i=0; i<run_benchmark_cmd_args.size(); i++){
       if (run_benchmark_cmd_args[i].length()>10){
          string first11 = run_benchmark_cmd_args[i].substr(0,11);
@@ -155,6 +164,14 @@ void ocolos_env::get_cmds(){
             has_user = true;
          }
       }
+      if (run_benchmark_cmd_args[i].length()>16){
+         string first17 = run_benchmark_cmd_args[i].substr(0,17);
+         if (first17=="--mysql-password="){
+            ocolos_env::db_user_password = run_benchmark_cmd_args[i].substr(17, run_benchmark_cmd_args[i].length());
+            if (ocolos_env::db_user_password[ocolos_env::db_user_password.length()-1]=='\n') ocolos_env::db_user_password.pop_back();
+            has_password = true;
+         }
+      }
    }
 
    if (has_db==false) {
@@ -163,6 +180,10 @@ void ocolos_env::get_cmds(){
    }
    if (has_user==false) {
       printf("[tracer][error] the benchmark command didn't specify user's name\n");
+      exit(-1);
+   }
+   if (has_password==false) {
+      printf("[tracer][error] the benchmark command didn't specify user's password\n");
       exit(-1);
    }
 }

@@ -1,19 +1,39 @@
+#define _GNU_SOURCE
+#include <sched.h>
 #include "infrastructure.hpp"
 
 using namespace std;
 
+void setaffinity(int start, int end) {
+   cpu_set_t set;
+   CPU_ZERO(&set);
 
+   // 将 CPU 核心 80 到 87 加入到集合中
+   for (int i = start; i <= end; ++i) {
+      CPU_SET(i, &set);
+   }
+   if (sched_setaffinity(0, sizeof(set), &set) == -1) {
+     printf("pid %d is set affinity to CPUs %d-%d failed!\n", getpid(), start, end);
+   }
+
+   printf("pid %d is set affinity to CPUs %d-%d.\n", getpid(), start, end);
+}
 
 void initialize_benchmark(const ocolos_env* ocolos_environ){
    sleep(20);
-   string command = ocolos_environ->client_binary_path + " -u "+
-                    ocolos_environ->db_user_name+" -e 'drop database "+
-                    ocolos_environ->db_name+"'";
+   string command = ocolos_environ->client_binary_path +
+                        " -u" + ocolos_environ->db_user_name +
+                        " -p" + ocolos_environ->db_user_password +
+                        " --socket=" + ocolos_environ->client_socket +
+                        " -e 'drop database " + ocolos_environ->db_name + "'";
+   printf("[tracer] exec: %s\n", command.c_str());
    if ( system (command.c_str())) exit(-1);
-   command = ocolos_environ->client_binary_path + " -u "+
-             ocolos_environ->db_user_name+" -e 'create database "+
-             ocolos_environ->db_name+"'";
-
+   command = ocolos_environ->client_binary_path +
+                 " -u" + ocolos_environ->db_user_name +
+                 " -p" + ocolos_environ->db_user_password +
+                 " --socket=" + ocolos_environ->client_socket +
+                 " -e 'create database " + ocolos_environ->db_name + "'";
+   printf("[tracer] exec: %s\n", command.c_str());
    if ( system (command.c_str())==-1) exit(-1);
    sleep(3);
 
@@ -23,6 +43,7 @@ void initialize_benchmark(const ocolos_env* ocolos_environ){
       string benchmark_cmd = ocolos_environ->init_benchmark_cmd;
       char** argv = split_str_2_char_array(benchmark_cmd);
       char **envp = environ;
+      printf("[tracer] exec: %s\n", benchmark_cmd.c_str());
       execve(argv[0], argv, envp);
    }
    int stat;
@@ -36,11 +57,13 @@ void run_benchmark(const ocolos_env* ocolos_environ){
 
    if (sysbench_pid == 0){
       // child
-      int fd = open("sysbench_output.txt",O_WRONLY | O_CREAT, 0666);
-      dup2(fd, 1);
+      setaffinity(72, 95);
       string benchmark_cmd = ocolos_environ->run_benchmark_cmd;
       char** argv = split_str_2_char_array(benchmark_cmd);	
       char **envp = environ;
+      printf("[tracer] exec: %s\n", benchmark_cmd.c_str());
+      int fd = open("sysbench_output.txt",O_WRONLY | O_CREAT, 0666);
+      dup2(fd, 1);
       execve(argv[0], argv, envp);
    }
 }
@@ -49,6 +72,7 @@ void run_benchmark(const ocolos_env* ocolos_environ){
 
 
 void create_target_server_process(const ocolos_env* ocolos_environ){
+   setaffinity(64, 71);
    string ld_pre = "LD_PRELOAD="+ ocolos_environ->ld_preload_path;
    char* ldpreload = new char[ld_pre.length()+1];
    strcpy(ldpreload, ld_pre.c_str());
@@ -57,6 +81,7 @@ void create_target_server_process(const ocolos_env* ocolos_environ){
    char** argv = split_str_2_char_array(exe_cmd);
    putenv(ldpreload);
    char **envp = environ;
+   printf("[tracer] exec: %s\n", exe_cmd.c_str());
    execve(argv[0], argv, envp);
 }
 
@@ -153,7 +178,7 @@ void send_data_path(const ocolos_env* ocolos_environ){
    char* buf = (char*) malloc(sizeof(char)*path.size());
    strcpy(buf, path.c_str());
    int n = write(sockfd, buf, path.size());
-   if (n <= 0) exit(-1);	
+   if (n <= 0) exit(-1);
    close(sockfd);
    close(comm_fd);
    close(listen_fd);
@@ -192,7 +217,7 @@ void run_perf_record(int target_pid, const ocolos_env* ocolos_environ){
 #ifdef AArch64
    if (func_exec_count==1){
       command = ocolos_environ->perf_path+
-                       " record -e cycles:u  -a -o "+
+                       " record -e cycles:u -a -o "+
                        ocolos_environ->tmp_data_path+ 
                        "perf.data -p "+
                        to_string(target_pid)+
@@ -213,6 +238,7 @@ void run_perf_record(int target_pid, const ocolos_env* ocolos_environ){
 #endif
    char* command_cstr = new char [command.length()+1];
    strcpy (command_cstr, command.c_str());
+   printf("[tracer] exec: %s\n", command_cstr);
    if (system(command_cstr)!=0) printf("[tracer] error in %s\n",__FUNCTION__);
    free(command_cstr);
 }
@@ -259,7 +285,7 @@ void run_perf2bolt(const ocolos_env* ocolos_environ){
       char* command_cstr = new char [command.length()+1];
       strcpy (command_cstr, command.c_str());
 
-
+      printf("[tracer] exec: %s\n", command_cstr);
       fp1 = popen(command_cstr, "r");
       free(command_cstr);
 
@@ -415,7 +441,7 @@ unordered_map<long, func_info> run_llvmbolt(const ocolos_env* ocolos_environ){
                     ocolos_environ->tmp_data_path+
                     "perf.fdata -o " +
                     ocolos_environ->bolted_binary_path + 
-                    " --enable-bat "+
+                    " --enable-bat --enable-aobo"+
                     " -reorder-blocks=ext-tsp "+
                     "-reorder-functions=hfsort+ "+
                     "-split-functions=0 "+
@@ -423,6 +449,7 @@ unordered_map<long, func_info> run_llvmbolt(const ocolos_env* ocolos_environ){
          
    char* command_cstr = new char[command.length()+1];
    strcpy(command_cstr, command.c_str()); 
+   printf("[tracer] exec: %s\n", command_cstr);
    fp1 = popen(command_cstr, "r");
    free(command_cstr);
 
