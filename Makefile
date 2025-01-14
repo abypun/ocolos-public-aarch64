@@ -6,13 +6,17 @@ LIBUNWIND_FLAGS=-lunwind -lunwind-ptrace -lunwind-generic
 BOOST_FLAGS=-lboost_serialization
 SRC_DIR=src
 
-all: replace_function.so tracer extract_call_sites 
+all: replace_function.so replace_function_lite.so tracer tracer_lite extract_call_sites 
 	rm -rf *.o $(SRC_DIR)/*.gch elf-extract/Cargo.lock
 
 replace_function.so: $(SRC_DIR)/replace_function.hpp $(SRC_DIR)/replace_function.cpp	
 	$(CPP) $^ -o $@ -fPIC -shared -ldl
+replace_function_lite.so: $(SRC_DIR)/replace_function.hpp $(SRC_DIR)/replace_function_lite.cpp	
+	$(CPP) $^ -o $@ -fPIC -shared -ldl
 
 tracer: $(SRC_DIR)/tracer.cpp utils.o infrastructure.o extract_machine_code.o ptrace_pause.o elf-extract/target/release/libelf_extract.a
+	$(CPP) $(CPPFLAGS) $^ -o $@ $(LINKER_FLAGS) $(LIBUNWIND_FLAGS) $(BOOST_FLAGS)
+tracer_lite: $(SRC_DIR)/tracer_lite.cpp utils.o infrastructure.o extract_machine_code.o ptrace_pause.o elf-extract/target/release/libelf_extract.a
 	$(CPP) $(CPPFLAGS) $^ -o $@ $(LINKER_FLAGS) $(LIBUNWIND_FLAGS) $(BOOST_FLAGS)
 infrastructure.o: $(SRC_DIR)/infrastructure.hpp $(SRC_DIR)/infrastructure.cpp $(SRC_DIR)/utils.hpp
 	$(CPP) $(CPPFLAGS) $^ -c $(LINKER_FLAGS) 

@@ -294,5 +294,5 @@ int main()
    oa1 << call_sites_list;
 
    //   command = "rm -rf "+new_target_binary;
-   system(command.c_str());
+   //   system(command.c_str());
 }
