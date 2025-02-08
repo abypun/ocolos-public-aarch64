@@ -87,24 +87,6 @@ void before_main(void) __attribute__((constructor (101)));
  */
 void insert_machine_code(void);
 
-
-
-
-/*
- * create a tcp socket for receiving message sending from Ocolos' tracer. 
- */
-void create_tcp_socket(int & listen_fd, struct sockaddr_in & servaddr);
-
-
-
-/*
- * Receive the data_path from the message sending from Ocolos' tracer.
- */
-string get_data_path(int listen_fd);
-
-
-
-
 /*
  * Convert a string into a long integer type. 
  */

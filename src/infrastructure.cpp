@@ -85,21 +85,6 @@ void create_target_server_process(const ocolos_env* ocolos_environ){
    execve(argv[0], argv, envp);
 }
 
-
-
-void create_tcp_socket(int listen_fd, struct sockaddr_in & servaddr){
-   bzero(&servaddr, sizeof(servaddr));
-   servaddr.sin_family = AF_INET;
-   servaddr.sin_addr.s_addr = htons(INADDR_ANY);
-   servaddr.sin_port = htons(8011);
-   bind(listen_fd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-   listen(listen_fd, 10);
-}
-
-
-
-
-
 void* get_lib_addr(int listen_fd){
    struct sockaddr_in clientaddr;
    socklen_t clientaddrlen = sizeof(clientaddr);

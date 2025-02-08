@@ -27,20 +27,6 @@ void run_benchmark(const ocolos_env*);
  */
 void create_target_server_process(const ocolos_env*);
 
-
-
-
-/*
- * create tcp socket. The tcp socket is created 
- * to accept the message fromthe ld_preload library 
- * to get the starting address of `replace_function()`, 
- * which does the machine code insertion work.
- */
-void create_tcp_socket(int listen_fd, struct sockaddr_in & servaddr);
-
-
-
-
 /*
  * accept message from target process then convert the 
  * message into a pointer that represent the address of 

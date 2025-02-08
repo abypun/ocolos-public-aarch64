@@ -58,9 +58,9 @@ pub extern "C" fn write_functions(bolted_binary_path: *const c_char,
         let file_offset_start = (base_file_offset + sym_offset) as usize;
         let bytes: &[u8] = &FILE_BYTES.get().unwrap()[file_offset_start..file_offset_start+sym.size() as usize];
 
-        w.write_all(&a.to_le_bytes()).unwrap();
-        w.write_all(&(bytes.len() as u64).to_le_bytes()).unwrap();
-        w.write_all(bytes).unwrap();
+        w.write_all(&a.to_le_bytes()).unwrap();                    // usize: 指令起始地址
+        w.write_all(&(bytes.len() as u64).to_le_bytes()).unwrap(); // u64  : 函数指令长度
+        w.write_all(bytes).unwrap();                               //        函数指令内容
     }
 }
 

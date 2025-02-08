@@ -100,12 +100,7 @@ vector<unw_word_t> unwind_call_stack(vector<pid_t> tids){
    return call_stack;
 }
 
-
-
-
-
-
-#ifdef Intel64	
+#ifdef Intel64
 bool ptrace_single_step_intel64(pid_t tid, void* lib_addr, struct user_regs_struct &regs, struct user_regs_struct &old_regs, struct user_fpregs_struct &fregs){
    // setting the IP points to function in library
    ptrace(PTRACE_GETREGS,tid,NULL, &regs);
