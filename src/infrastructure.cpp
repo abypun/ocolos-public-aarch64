@@ -374,9 +374,8 @@ void run_perf2bolt(const ocolos_env* ocolos_environ){
             }
          }
       }
-		
-      fclose(fp1);
 
+      fclose(fp1);
 
    }
    #ifdef TIME_MEASUREMENT
@@ -385,9 +384,6 @@ void run_perf2bolt(const ocolos_env* ocolos_environ){
    printf("[tracer(time)] perf2bolt took %f seconds to execute \n", elapsed.count() * 1e-9);
    #endif
 }
-
-
-
 
 unordered_map<long, func_info> run_llvmbolt(const ocolos_env* ocolos_environ){
    #ifdef TIME_MEASUREMENT
@@ -620,35 +616,35 @@ unordered_map<long, func_info> get_func_in_call_stack(vector<unw_word_t> call_st
 }
 
 
-void write_func_on_call_stack_into_file(const ocolos_env* ocolos_environment, 
-                                        unordered_map<long, func_info> func_in_call_stack){
-  string snapshot_path = ocolos_environment->tmp_data_path + "callstack_func.bin";
-  FILE* fp = fopen(snapshot_path.c_str(), "w");
+void write_func_on_call_stack_into_file(const ocolos_env* ocolos_environment,
+                                        unordered_map<long, func_info> func_in_call_stack) {
+    string snapshot_path = ocolos_environment->tmp_data_path + "callstack_func.bin";
+    FILE* fp = fopen(snapshot_path.c_str(), "w");
 
-  long callstack_func_number = func_in_call_stack.size();
-  fwrite(&callstack_func_number, sizeof(long), 1, fp);
+    long callstack_func_number = func_in_call_stack.size();
+    fwrite(&callstack_func_number, sizeof(long), 1, fp);
 
-  uint64_t buffer[func_in_call_stack.size()];
-  int i = 0; 
-  for (auto it = func_in_call_stack.begin(); it != func_in_call_stack.end(); it++){
-     buffer[i] = (uint64_t)it->first;
-     i++;
-  }
-  fwrite(buffer, sizeof(uint64_t), callstack_func_number, fp);
+    uint64_t buffer[func_in_call_stack.size()];
+    int i = 0; 
+    for (auto it = func_in_call_stack.begin(); it != func_in_call_stack.end(); it++){
+         buffer[i] = (uint64_t)it->first;
+        i++;
+    }
+    fwrite(buffer, sizeof(uint64_t), callstack_func_number, fp);
 
-  fflush(fp);
-  fclose(fp);
+    fflush(fp);
+    fclose(fp);
 }
 
 
-unordered_map<long, func_info> get_unmoved_func_not_in_call_stack(unordered_map<long, func_info>func_in_call_stack, 
+unordered_map<long, func_info> get_unmoved_func_not_in_call_stack(unordered_map<long, func_info>func_in_call_stack,
                                                                   unordered_map<long, func_info> unmoved_func)
 {
-   unordered_map<long, func_info> unmoved_func_not_in_call_stack;
-   for (auto it=unmoved_func.begin(); it!=unmoved_func.end(); it++){
-      if (func_in_call_stack.find(it->first)==func_in_call_stack.end()){
-         unmoved_func_not_in_call_stack[it->first] = it->second;
-      }
-   }
-   return unmoved_func_not_in_call_stack;
+    unordered_map<long, func_info> unmoved_func_not_in_call_stack;
+    for (auto it = unmoved_func.begin(); it != unmoved_func.end(); it++){
+        if (func_in_call_stack.find(it->first) == func_in_call_stack.end()){
+            unmoved_func_not_in_call_stack[it->first] = it->second;
+        }
+    }
+    return unmoved_func_not_in_call_stack;
 }

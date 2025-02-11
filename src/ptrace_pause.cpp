@@ -86,7 +86,7 @@ vector<unw_word_t> unwind_call_stack(vector<pid_t> tids){
          call_stack.push_back(ip);
 
          #ifdef DEBUG_INFO
-         printf("[tracer] %p : (%s+0x%x) \n\t\t[sp=%p]\n", (void *)ip,fname,(int) offset,(void *)sp);
+         // printf("[tracer] %p : (%s+0x%x) \n\t\t[sp=%p]\n", (void *)ip,fname,(int) offset,(void *)sp);
          #endif
       } while (unw_step(&c) > 0);
 

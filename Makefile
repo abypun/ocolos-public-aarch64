@@ -10,7 +10,7 @@ all: replace_function.so tracer extract_call_sites
 	rm -rf *.o $(SRC_DIR)/*.gch elf-extract/Cargo.lock
 
 replace_function.so: $(SRC_DIR)/replace_function.hpp $(SRC_DIR)/replace_function.cpp
-	$(CPP) $^ -o $@ -g -fPIC -shared -ldl
+	$(CPP) $^ -o $@ -g -fPIC -shared -ldl -I/home/wrf/tools/l0/lomemlib/include -L/home/wrf/tools/l0/lomemlib -ll0mempool
 
 tracer: $(SRC_DIR)/tracer.cpp utils.o infrastructure.o extract_machine_code.o ptrace_pause.o elf-extract/target/release/libelf_extract.a
 	$(CPP) $(CPPFLAGS) $^ -o $@ $(LINKER_FLAGS) $(LIBUNWIND_FLAGS) $(BOOST_FLAGS)

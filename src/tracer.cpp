@@ -17,12 +17,29 @@ void clean_old_temp_files(ocolos_env* ocolos_environ) {
     remove_file(ocolos_environ->unmoved_func_bin);
 }
 
+void parse_params(int argc, char* argv[], unordered_map<string, string>& params) {
+    for (int i = 1; i < argc; ++i) {
+        string arg = argv[i];
+        if (arg.find("--") == 0) {
+            size_t equal_pos = arg.find('=');
+            if (equal_pos != string::npos) {
+                string key = arg.substr(2, equal_pos - 2);  // 提取 "--" 后的参数名
+                string value = arg.substr(equal_pos + 1);   // 提取等号后的值
+                params[key] = value;
+            } else {
+                cerr << "Invalid argument format: " << arg << endl;
+                exit(-1);
+            }
+        }
+    }
+}
+
 // 外部输入：
-// 1. BOLT优化版本的优化函数列表
-// 2. 应用pid
+// 1. BOLT优化版本的优化函数列表，csv/json格式
+// 2. 目标应用pid
 // 3. 应用进程内insert_machine_code地址
-// ./tracer --pid=12345 --libaddr=0x12345678 --boltinfo=/path/to/bolted_functions.txt
-int main() {
+// ./tracer --pid=12345 --addr=0x12345678 --boltinfo=/path/to/boltinfo.csv
+int main(int argc, char* argv[]) {
     ocolos_env ocolos_environ;
 
     pid_t target_pid;
@@ -35,6 +52,7 @@ int main() {
     fclose(f);
 
     unordered_map<long, func_info> bolted_func;
+    // TODO: 提前处理成csv或者json格式数据
     f = fopen((ocolos_environ.tmp_data_path + "bolt.log").c_str(), "r");
     if (f == NULL) {
         exit(-1);
@@ -58,10 +76,10 @@ int main() {
     fclose(f);
 
     unordered_map<long, func_info> func_with_addr = get_func_with_original_addr(&ocolos_environ);
-    unordered_map<long, func_info> unmoved_func   = get_unmoved_func(func_with_addr, bolted_func);	
+    unordered_map<long, func_info> unmoved_func   = get_unmoved_func(func_with_addr, bolted_func);
     map<long, func_info> func_heap                = change_func_to_heap(func_with_addr);
     unordered_map<string, string> v_table         = get_v_table(&ocolos_environ);
-    vector<long> addr_bolted_func = get_moved_addr_to_array(bolted_func);
+    vector<long> addr_bolted_func                 = get_moved_addr_to_array(bolted_func);
 
     clean_old_temp_files(&ocolos_environ);
 
@@ -82,7 +100,7 @@ int main() {
     unordered_map<long, func_info> func_in_call_stack =  get_func_in_call_stack(call_stack_ips, func_heap);
     unordered_map<long, func_info> unmoved_func_not_in_call_stack = get_unmoved_func_not_in_call_stack(func_in_call_stack, unmoved_func);
     // for continuous optimization
-    write_func_on_call_stack_into_file(&ocolos_environ, func_in_call_stack);  
+    write_func_on_call_stack_into_file(&ocolos_environ, func_in_call_stack);
     // extract the machine code of each function from the output of objdump
     vector<long> addr_unmoved_func_not_in_call_stack = get_keys_to_array(unmoved_func_not_in_call_stack);
     FILE *call_sites_bin = fopen(ocolos_environ.call_sites_bin.c_str(), "a");
