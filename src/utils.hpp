@@ -97,9 +97,15 @@ typedef struct ocolos_env{
    string init_benchmark_cmd;
    string run_benchmark_cmd;
 
+   string mysql_bind_cpus;
+   string sysbench_bind_cpus;
+
    string client_binary_path;
+   string client_socket;
+   
    string db_name;
    string db_user_name;
+   string db_user_password;
 
    string lib_path;
    string tmp_data_path;

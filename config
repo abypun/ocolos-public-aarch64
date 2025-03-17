@@ -1,25 +1,34 @@
-#perf=/usr/bin/perf
-#nm=/usr/local/bin/nm
+perf=/usr/bin/perf
+nm=/usr/bin/nm
 objdump=/usr/bin/objdump
-llvm-bolt=/home/zyuxuan/BOLT-cont-opt/build/bin/llvm-bolt  
-perf2bolt=/home/zyuxuan/BOLT-cont-opt/build/bin/perf2bolt
-mysql=/usr/local/mysql/bin/mysql
-
+llvm-bolt=/root/rpmbuild/BUILD/llvm-project-17.0.6.src.aobo/build/bin/llvm-bolt
+perf2bolt=/root/rpmbuild/BUILD/llvm-project-17.0.6.src.aobo/build/bin/perf2bolt
+mysql=/home/wrf/install/mysql-8.0.25_Wlq_nojt_nopie/bin/mysql
+socket=/data/wrf/mysql/run/mysql.sock
 
 ## NOTE: before using the directory you list here, please
 ## first make sure that the directory is created and has 
 ## the correct ownership.
 ## the path of directory that stores the temporary data 
-tmp_data_dir=/home/zyuxuan/ocolos_data/
+tmp_data_dir=/data/wrf/ocolos_data/
 ## path where you put your replace_function.so
-lib=/home/zyuxuan/ocolos-public/
+lib=/home/wrf/codes/ocolos-public-aarch64/
 
 
 ## NOTE: the command you list here must have the binary 
 ## (aka. mysqld and sysbench) written in its absolute path.
 ## the command to run the server process
-server_cmd=/usr/local/mysql/bin/mysqld --user=ocolos --port=3306 --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --plugin-dir=/usr/local/mysql/lib/plugin --log-error=ocolos.err --pid-file=ocolos.pid
+server_cmd=/home/wrf/install/mysql-8.0.25_Wlq_nojt_nopie/bin/mysqld --defaults-file=/home/wrf/install/my.cnf.xz
 ## the command to initialize the db for your benchmark 
-init_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --threads=4 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-db=ocolos_db --tables=4 --table-size=10000 --db-ps-mode=disable prepare
+##init_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --threads=4 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=123456 --mysql-db=sysbench --tables=4 --table-size=10000 --db-ps-mode=disable prepare
 ## the command to run your benchmark 
-run_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --threads=4 --events=100000000 --time=180 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-db=ocolos_db --tables=4 --table-size=10000 --range_selects=off --db-ps-mode=disable --report-interval=1 run
+##run_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --threads=4 --events=100000000 --time=180 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-password=123456 --mysql-user=root --mysql-db=sysbench --tables=4 --table-size=10000 --range_selects=off --db-ps-mode=disable --report-interval=1 run
+
+init_benchmark_cmd=/usr/local/bin/sysbench --db-driver=mysql --threads=16 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=123456 --mysql-db=sysbench --tables=64 --table-size=10000000 --db-ps-mode=disable oltp_read_only prepare
+# run_benchmark_cmd=/usr/local/bin/sysbench --db-driver=mysql --threads=32 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=123456 --mysql-db=sysbench --tables=64 --table-size=10000000 --time=200 --percentile=95 --report-interval=1 oltp_read_only run
+# run_benchmark_cmd=/usr/local/bin/sysbench --db-driver=mysql --threads=256 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=123456 --mysql-db=sysbench --tables=64 --table-size=10000000 --time=200 --percentile=95 --report-interval=1 oltp_write_only run
+run_benchmark_cmd=/usr/local/bin/sysbench --db-driver=mysql --threads=256 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=123456 --mysql-db=sysbench --tables=64 --table-size=10000000 --time=300 --percentile=95 --report-interval=1 oltp_read_write run
+
+## 注意绑核范围无法在这里修改，需要直接改代码
+mysql_bind_cpus=64-71
+sysbench_bind_cpus=72-95

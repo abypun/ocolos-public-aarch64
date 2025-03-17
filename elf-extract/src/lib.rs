@@ -115,6 +115,11 @@ fn init(bolted_bin_path: &str) -> Result<(),()> {
     let mut m: HashMap<u64,Symbol> = HashMap::new();
     ELF_FILE.get().unwrap().symbols().chain(ELF_FILE.get().unwrap().dynamic_symbols())
         .for_each( |s| {
+        //     println!("[ELF_SYMBOLS] s.address: 0x{:x}, s.kind: {:?}", s.address(), s.kind());
+        //     match s.name() {
+        //         Ok(name) => println!("s.name: {}", name),
+        //         Err(e) => println!("s.name: failed to get name: {}", e),
+        //     }
             if object::SymbolKind::Text == s.kind() {
                 m.insert(s.address(), s);
             }

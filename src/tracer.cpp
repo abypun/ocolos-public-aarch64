@@ -26,9 +26,14 @@ int main(){
       // function back via TCP connection 
       void* lib_addr = get_lib_addr(ocolos_environ.listen_fd);		
       thread t = thread(send_data_path, &ocolos_environ);
-      initialize_benchmark(&ocolos_environ);
+    //   initialize_benchmark(&ocolos_environ);
+      sleep(10);
       run_benchmark(&ocolos_environ);
-      sleep(20);
+      if (strstr(ocolos_environ.run_benchmark_cmd.c_str(), "oltp_read_write") != NULL) {
+        sleep(200);
+      } else {
+        sleep(10);
+      }
       // run perf and BOLT
       // (1) get perf.data
       // (2) get perf.fdata
@@ -53,6 +58,7 @@ int main(){
                               ocolos_environ.v_table_bin+" "+
                               ocolos_environ.call_sites_bin+" "+
                               ocolos_environ.unmoved_func_bin;
+      printf("[tracer] exec: %s\n", delete_all_bin.c_str());
       if (system(delete_all_bin.c_str())==-1) exit(-1);
 
       FILE *pFile1;
