@@ -1,0 +1,13 @@
+1. yum install -y libunwind-devel boost-devel
+2. /root/.cargo/config.toml设置代理
+3. make构建
+4. 修改config
+5. ./extract_call_sites
+
+LD_PRELOAD=/home/wrf/codes/ocolos-public-aarch64/replace_function.so /home/wrf/install/mysql_aobo/bin/mysqld --defaults-file=/home/wrf/scripts/test/mysql/sysbench/my.cnf.8u32g &
+ - /data/wrf/ocolos_data/target.txt:
+ - <lib_addr> <pid>
+
+
+/data/wrf/ocolos_data/cmd.txt:
+start_mysql_sample

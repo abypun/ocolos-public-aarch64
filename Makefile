@@ -1,4 +1,5 @@
 CC=g++
+CPP=g++
 CPPFLAGS=-Wall -O3 -DAArch64 # -g -DTIME_MEASUREMENT -DIntel64 -DDEBUG_INFO
 LINKER_FLAGS=-lpthread -ldl
 LIBUNWIND_FLAGS=-lunwind -lunwind-ptrace -lunwind-generic

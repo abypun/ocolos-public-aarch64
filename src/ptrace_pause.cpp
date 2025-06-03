@@ -38,6 +38,7 @@ vector<pid_t> pause_and_get_tids(pid_t target_pid){
    for (unsigned i=0; i<tids.size(); i++){
       int status;
       waitpid(tids[i], &status, 0);
+      printf("[pause_and_get_tids] tid: %d, status: %d\n", tids[i], status);
    }
    return tids;
 }
@@ -290,6 +291,7 @@ bool ptrace_single_step_aarch64(pid_t tid, void *lib_addr, struct user_regs_stru
    int status;
    ptrace(PTRACE_SINGLESTEP, tid, NULL, 0);
    waitpid(tid, &status, 0);
+   printf("[ptrace_single_step_aarch64] tid: %d, status: %d\n", tid, status);
 
    if (!WIFSTOPPED(status))
    {

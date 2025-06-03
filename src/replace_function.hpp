@@ -1,8 +1,5 @@
 #define UNW_LOCAL_ONLY
 #define LD_PRELOAD_PATH "LD_PRELOAD=replace_function.so\0"
-#define MMAP_PAGE_SIZE 4*1024 // huge page: 2*1024*1024
-#define MMAP_PAGE_OFFSET 0b111111111111 // huge page: 0b111111111111111111111
-
 
 #include <dlfcn.h>
 #include <stdio.h>

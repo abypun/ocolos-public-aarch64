@@ -5,38 +5,35 @@
 using namespace std;
 
 int main(){
-   // TCP resources initialization
-   // TCP connections is used for getting the 
-   // starting address of the function in 
-   // ld_preload
    ocolos_env ocolos_environ;
-   struct sockaddr_in servaddr;
-   create_tcp_socket(ocolos_environ.listen_fd, servaddr);
+   void* lib_addr;
 
-   // spawn target process
-   pid_t target_pid = fork();
-   if (target_pid == 0){
-      // child - target server process
-      create_target_server_process(&ocolos_environ);
-      printf("[tracer] target server process creation fails\n");
+   // 删除/data/wrf/ocolos_data/target.txt
+   // system("rm -rf /data/wrf/ocolos_data/target.txt");
+
+   pid_t target_pid = 0;
+   // pid_t target_pid = fork();
+   // if (target_pid == 0){
+   //    char* ld_pre = "LD_PRELOAD=/home/wrf/codes/ocolos-public-aarch64/replace_function.so";
+   //    string exe_cmd = ocolos_environ.run_server_cmd;
+   //    char** argv = split_str_2_char_array(exe_cmd);
+   //    putenv(ld_pre);
+   //    char **envp = environ;
+   //    execve(argv[0], argv, envp);
+   // } else {
+   // sleep(10);
+   // 轮询/data/wrf/ocolos_data/target.txt，如果存在且有内容，则读取内容，否则等待1s后继续轮询
+   while (true) {
+      FILE *file = fopen("/data/wrf/ocolos_data/target.txt", "r");
+      if (file) {
+         fscanf(file, "%lx %d", &lib_addr, &target_pid);
+         fclose(file);
+         break;
+      }
+      sleep(1);
    }
-   else {
-      // parent - tracer process
-      // wait for child to send the addr of library 
-      // function back via TCP connection 
-      void* lib_addr = get_lib_addr(ocolos_environ.listen_fd);		
-      thread t = thread(send_data_path, &ocolos_environ);
-      initialize_benchmark(&ocolos_environ);
-      run_benchmark(&ocolos_environ);
-      sleep(20);
-      // run perf and BOLT
-      // (1) get perf.data
-      // (2) get perf.fdata
-      // (3) generate the BOLTed binary 
-      // (4) get the set of functions that is BB reordered by 
-      //     BOLT.
-      run_perf_record(target_pid, &ocolos_environ);
-      run_perf2bolt(&ocolos_environ);
+
+      // sample + perf2bolt + llvm-bolt
       unordered_map<long, func_info> bolted_func = run_llvmbolt(&ocolos_environ);
 
       // get all functions that have location changed		
@@ -84,11 +81,12 @@ int main(){
       auto begin = std::chrono::high_resolution_clock::now();
       #endif
 
-
-
       // to pause all running threads of the target process
       // and then get the PIDs(tid) of these threads
       vector<pid_t> tids = pause_and_get_tids(target_pid);
+      for (auto tid : tids) {
+         printf("[tracer] tid: %d\n", tid);
+      }
 
       // unwind call stack and get the functions
       // in the call stacks of each threads
@@ -134,11 +132,13 @@ int main(){
 #endif
 #ifdef AArch64
       for (unsigned i=0; i<tids.size(); i++){
+         printf("[tracer] tid: %d, ptrace_single_step_aarch64\n", tids[i]);
          if(!ptrace_single_step_aarch64(tids[i], lib_addr, regs, old_regs, fregs)){
             continue;
          }
+         printf("[tracer] tid: %d, ptrace_cont_aarch64\n", tids[i]);
          ptrace_cont_aarch64(tids[i], regs, old_regs, fregs);
-         break;			
+         break;
       }
 #endif
 
@@ -168,7 +168,20 @@ int main(){
       printf("[tracer][time] machine code insertion took %f seconds to execute \n", elapsed.count() * 1e-9);
       #endif
 
-      t.join();      
+      // 轮询/data/wrf/ocolos_data/cmd.txt，如果存在且有内容，则读取内容，否则等待1s后继续轮询
+   while (true) {
+      FILE *file = fopen("/data/wrf/ocolos_data/cmd.txt", "r");
+      if (file) {
+         char cmd[1024];
+         fscanf(file, "%s", cmd);
+         fclose(file);
+         if (strcmp(cmd, "code_replacement_done") == 0) {
+            break;
+         }
+      }
+      sleep(1);
+   }
+     
       printf("[tracer][OK] code replacement done!\n");
       #ifdef DEBUG
       while(true);
@@ -185,7 +198,7 @@ int main(){
       #ifdef CONT_OPT
       run_perf_record(target_pid, &ocolos_environ);
       #endif
-   }
+   // }
 }
 
 

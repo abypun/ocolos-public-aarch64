@@ -1,6 +1,7 @@
 #include "replace_function.hpp"
 
-
+int MMAP_PAGE_SIZE = 4*1024; // huge page: 2*1024*1024
+int MMAP_PAGE_OFFSET = 0b111111111111; // huge page: 0b111111111111111111111
 
 
 int __libc_start_main(void *orig_main,int argc,char* argv[],
@@ -13,7 +14,7 @@ int __libc_start_main(void *orig_main,int argc,char* argv[],
   orig_func_type orig_func;
   int ret = 0;
   orig_func = (orig_func_type) dlsym(RTLD_NEXT, "__libc_start_main");
-  sbrk(0x8000000); // works to shift the first allocation
+//   sbrk(0x8000000); // works to shift the first allocation
   ret = orig_func(orig_main,argc,argv,
                   (fnptr_type)init_func,
                   (fnptr_type)fini_func,
@@ -21,10 +22,6 @@ int __libc_start_main(void *orig_main,int argc,char* argv[],
                   stack_end); 
   return ret;
 }                                                                 
-
-
-
-
 
 void ocolos_env::get_dir_path(string data_path){
    ocolos_env::tmp_data_path        = data_path;
@@ -36,10 +33,6 @@ void ocolos_env::get_dir_path(string data_path){
 
    ocolos_env::debug_log            = ocolos_env::tmp_data_path+"machine_code.txt";
 }
-
-
-
-
 
 uint64_t convert_str_2_long(string str){
    uint64_t result = 0;
@@ -124,49 +117,6 @@ void insert_code_to_orig_text_sec(FILE* pFile, FILE* recordFile, long base_n){
    }
 }
 
-
-
-
-void create_tcp_socket(int & listen_fd, struct sockaddr_in & servaddr){
-   bzero(&servaddr, sizeof(servaddr));
-   servaddr.sin_family = AF_INET;
-   servaddr.sin_addr.s_addr = htons(INADDR_ANY);
-   servaddr.sin_port = htons(18000);
-   bind(listen_fd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-   listen(listen_fd, 10);
-}
-
-
-
-
-string get_data_path(int listen_fd){
-   struct sockaddr_in clientaddr;
-   socklen_t clientaddrlen = sizeof(clientaddr);
-   int comm_fd = accept(listen_fd, (struct sockaddr*)&clientaddr, &clientaddrlen);
-   const int enable = 1;
-   if (setsockopt(comm_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0){
-      printf("[tracer(lib)] setsockopt(SO_REUSEADDR) failed\n");
-      exit(-1);
-   }
-
-   printf("[tracee (lib)] connection from %s\n", inet_ntoa(clientaddr.sin_addr));
-   char* buf = (char*)malloc(500*sizeof(char));
-   memset(buf, 0, 500*sizeof(char));
-   int n = read(comm_fd, buf, 80);
-   if (n<=0){
-      printf("[tracee (lib)] error in receiving msg from tracee.\n");
-      exit(-1);
-   }
-   close(comm_fd);
-   string path(buf);
-   free(buf);
-   return path;
-}
-
-
-
-
-
 void before_main(){
    // delete the ld_preload environment variable
    for (int i=0; environ[i] !=NULL; i++){
@@ -179,42 +129,26 @@ void before_main(){
       }
    }	
 
-   printf("[tracee (lib)] The virtual address of insert_machine_code() is: %p\n", insert_machine_code);		
-
-   int sockfd = socket(PF_INET, SOCK_STREAM, 0);
-   const int enable = 1;
-   if (sockfd < 0) {
-      printf("[tracee (lib)] cannot open socket (%s)\n", strerror(errno));
-      exit(-1);
-   }
-   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0){
-      printf("[tracer(lib)] setsockopt(SO_REUSEADDR) failed\n");
-      exit(-1);
+   printf("[tracee (lib)] The virtual address of insert_machine_code() is: %p\n", insert_machine_code);
+   // write the virtual address of insert_machine_code() to addr.txt
+   FILE *file = fopen("/data/wrf/ocolos_data/target.txt", "w");
+   if (file) {
+      fprintf(file, "%lx %d", (long)insert_machine_code, getpid());
+      fclose(file);
+   } else {
+      printf("[tracee (lib)] Failed to open target.txt\n");
    }
 
-   // open a socket, connect to the tracer's parent process
-   // and sends the address of insert_machine_code() to 
-   // tracer
-   struct sockaddr_in servaddr;
-   bzero(&servaddr, sizeof(servaddr));
-   servaddr.sin_family = AF_INET;
-   servaddr.sin_port = htons(8011);
-   inet_pton(AF_INET, "localhost", &(servaddr.sin_addr));
-   connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-
-   // convert the virtual address of insert_machine_code()
-   string addr = to_string((long)insert_machine_code);
-   char* buf = (char*) malloc(sizeof(char)*addr.size());
-   strcpy(buf, addr.c_str());
-   int n = write(sockfd, buf, addr.size());
-   if (n <= 0) exit(-1);	
-   free(buf);
-   close(sockfd);
+   // 动态确认页大小
+   MMAP_PAGE_SIZE = sysconf(_SC_PAGESIZE);
+   MMAP_PAGE_OFFSET = MMAP_PAGE_SIZE - 1;
+   printf("[tracee (lib)] MMAP_PAGE_SIZE: %lx\n", MMAP_PAGE_SIZE);
 }
 
 
 
 void insert_BOLTed_function(FILE* pFile, FILE* recordFile, long base_n){
+   printf("[tracee (lib)] insert_BOLTed_function\n");
    print_func_name(recordFile, "BOLTed functions");
    unordered_set<long> allocated_pages;
    if (pFile!=NULL){
@@ -241,7 +175,11 @@ void insert_BOLTed_function(FILE* pFile, FILE* recordFile, long base_n){
             if (allocated_pages.find(new_addr)==allocated_pages.end()){
                allocated_pages.insert(new_addr);
                void* ret = mmap((void*)new_addr, MMAP_PAGE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC , MAP_FIXED_NOREPLACE | MAP_ANONYMOUS | MAP_PRIVATE , 0, 0);	
-               if (ret==MAP_FAILED) print_err_and_exit(recordFile, "mmap");
+               if (ret==MAP_FAILED) {
+                  // 打印mmap入参和失败原因
+                  fprintf(recordFile, "[tracee (lib)] mmap failed: %s, new_addr: %lx, MMAP_PAGE_SIZE: %lx\n", strerror(errno), new_addr, MMAP_PAGE_SIZE);
+                  print_err_and_exit(recordFile, "mmap");
+               }
                int err =  mprotect((void*)new_addr, MMAP_PAGE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC);
                if (err<0) print_err_and_exit(recordFile, "mprotect");
             }
@@ -271,6 +209,7 @@ void insert_BOLTed_function(FILE* pFile, FILE* recordFile, long base_n){
 
 
 void insert_call_site(FILE* pFile, FILE* recordFile, long base_n){
+   printf("[tracee (lib)] insert_call_site\n");
    print_func_name(recordFile, "call sites");
    unordered_set<long> allocated_pages;
    if (pFile!=NULL){
@@ -285,6 +224,7 @@ void insert_call_site(FILE* pFile, FILE* recordFile, long base_n){
 
 
 void insert_v_table(FILE* pFile, FILE* recordFile, long base_n){
+   printf("[tracee (lib)] insert_v_table\n");
    print_func_name(recordFile, "vtable");
    unordered_set<long> allocated_pages;
    if (pFile!=NULL){
@@ -300,6 +240,7 @@ void insert_v_table(FILE* pFile, FILE* recordFile, long base_n){
 
 
 void insert_unmoved_func(FILE* pFile, FILE* recordFile, long base_n ){
+   printf("[tracee (lib)] insert_unmoved_func\n");
    print_func_name(recordFile, "unmoved func");
    unordered_set<long> allocated_pages;	
    if (pFile!=NULL){
@@ -314,39 +255,11 @@ void insert_unmoved_func(FILE* pFile, FILE* recordFile, long base_n ){
 
 
 void insert_machine_code(void){
+   printf("[tracee (lib)] insert_machine_code\n");
    uint64_t base_n = 0;
    ocolos_env ocolos_environ;
-
-   int listen_fd = socket(PF_INET, SOCK_STREAM, 0);
-   const int enable = 1;
-   if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0){
-      printf("[tracer(lib)] setsockopt(SO_REUSEADDR) failed\n");
-      exit(-1);
-   }
-   struct sockaddr_in  servaddr0;
-
-   create_tcp_socket(listen_fd, servaddr0);
-
-   // open a socket, connect to the tracer's parent process
-   // and sends the address of insert_machine_code() to 
-   // tracer
-   int sockfd = socket(PF_INET, SOCK_STREAM, 0);
-   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0){
-      printf("setsockopt(SO_REUSEADDR) failed");
-      exit(-1);
-   }
-
-   struct sockaddr_in servaddr;
-   bzero(&servaddr, sizeof(servaddr));
-   servaddr.sin_family = AF_INET;
-   servaddr.sin_port = htons(9000);
-   inet_pton(AF_INET, "localhost", &(servaddr.sin_addr));
-   connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-
-
-   string data_path = get_data_path(listen_fd);
+   string data_path = "/data/wrf/ocolos_data/";
    ocolos_environ.get_dir_path(data_path);
-   close(listen_fd);
 
    FILE *pFile, *pFile2, *pFile3, *pFile4, *recordFile;
    string cmd1 = "" + ocolos_environ.bolted_function_bin;
@@ -355,7 +268,7 @@ void insert_machine_code(void){
    string cmd4 = "" + ocolos_environ.unmoved_func_bin;
    string cmd5 = "" + ocolos_environ.debug_log;
 
-   pFile = fopen (cmd1.c_str(),"r");
+   pFile =  fopen(cmd1.c_str(),"r");
    pFile2 = fopen(cmd2.c_str(),"r");
    pFile3 = fopen(cmd3.c_str(),"r");
    pFile4 = fopen(cmd4.c_str(),"r");
@@ -389,8 +302,14 @@ void insert_machine_code(void){
       if (err<0) print_err_and_exit(recordFile, "mprotect", itr);
    }
 
-   close(sockfd);
-   close(listen_fd);
+   // 写入code_replacement_done到/data/wrf/ocolos_data/cmd.txt
+   FILE *file = fopen("/data/wrf/ocolos_data/cmd.txt", "w");
+   if (file) {
+      fprintf(file, "code_replacement_done");
+      fclose(file);
+   } else {
+      printf("[tracee (lib)] Failed to open cmd.txt\n");
+   }
 
    printf("[tracee (lib)] insert_machine_code() is done\n");
    raise(SIGSTOP);	

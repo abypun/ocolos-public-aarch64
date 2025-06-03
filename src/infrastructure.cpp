@@ -383,55 +383,13 @@ unordered_map<long, func_info> run_llvmbolt(const ocolos_env* ocolos_environ){
    auto begin = std::chrono::high_resolution_clock::now();
    #endif
 
-   FILE *fp1;
+   FILE *fp1 = fopen("/data/wrf/ocolos_data/bolt.log", "r");
+   if (fp1 == NULL){
+      printf("Failed to open bolt log\n" );
+      exit(-1);
+   }
+
    char path1[3000];
-#ifdef Intel64
-   string command = ""+ocolos_environ->llvmbolt_path+" " +
-                    ocolos_environ->target_binary_path + 
-                    " -b "+
-                    ocolos_environ->tmp_data_path+
-                    "perf.fdata -o " +
-                    ocolos_environ->bolted_binary_path + 
-                    " --enable-bat"+
-                    " -reorder-blocks=ext-tsp "+
-                    "-reorder-functions=hfsort+ "+
-                    "-split-functions=0 "+
-                    "-dyno-stats";
-         
-   char* command_cstr = new char[command.length()+1];
-   strcpy(command_cstr, command.c_str()); 
-   fp1 = popen(command_cstr, "r");
-   free(command_cstr);
-
-   if (fp1 == NULL){
-      printf("Failed to run llvm-bolt command\n" );
-      exit(-1);
-   }
-#endif
-#ifdef AArch64
-   string command = ""+ocolos_environ->llvmbolt_path+" " +
-                    ocolos_environ->target_binary_path + 
-                    " -b "+
-                    ocolos_environ->tmp_data_path+
-                    "perf.fdata -o " +
-                    ocolos_environ->bolted_binary_path + 
-                    " --enable-bat --enable-aobo "+
-                    " -reorder-blocks=ext-tsp "+
-                    "-reorder-functions=hfsort+ "+
-                    "-split-functions=0 "+
-                    "-dyno-stats";
-         
-   char* command_cstr = new char[command.length()+1];
-   strcpy(command_cstr, command.c_str()); 
-   fp1 = popen(command_cstr, "r");
-   free(command_cstr);
-
-   if (fp1 == NULL){
-      printf("Failed to run llvm-bolt command\n" );
-      exit(-1);
-   }
-
-#endif
    // collect the bolted function name 
    // from BOLT's output
    unordered_map<long, func_info> changed_functions;
