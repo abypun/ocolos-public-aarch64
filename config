@@ -1,25 +1,18 @@
-perf=perf
+perf=/usr/bin/perf
 nm=/usr/bin/nm
 objdump=/usr/bin/objdump
-llvm-bolt=/home/wlmu/llvm-project-release-18.x/build/bin/llvm-bolt
-perf2bolt=/home/wlmu/llvm-project-release-18.x/build/bin/perf2bolt
-mysql=/home/wlmu/ocolos/mysql-server-8.0/build/bin/mysql
-
+llvm-bolt=/root/rpmbuild/BUILD/llvm-project-17.0.6.src/bin/llvm-bolt
+perf2bolt=/root/rpmbuild/BUILD/llvm-project-17.0.6.src/bin/perf2bolt
+mysql=/home/wrf/install/mysql_dfot/bin/mysqld
 
 ## NOTE: before using the directory you list here, please
-## first make sure that the directory is created and has 
+## first make sure that the directory is created and has
 ## the correct ownership.
-## the path of directory that stores the temporary data 
-tmp_data_dir=/home/wlmu/ocolos-public-aarch64/ocolos_data/
+## the path of directory that stores the temporary data
+tmp_data_dir=/data/wrf/ocolos_data/
 ## path where you put your replace_function.so
-lib=/home/wlmu/ocolos-public-aarch64/
+lib=/home/wrf/codes/ocolos-public-aarch64/
 
-
-## NOTE: the command you list here must have the binary 
-## (aka. mysqld and sysbench) written in its absolute path.
-## the command to run the server process
-server_cmd=/home/wlmu/ocolos/mysql-server-8.0/build/bin/mysqld --user=ocolos --port=3306 --basedir=/home/wlmu/ocolos/mysql-server-8.0/build --datadir=/home/wlmu/ocolos/mysql-server-8.0/data --plugin-dir=/home/wlmu/ocolos/mysql-server-8.0/build/lib/plugin --max-connections=1000 --log-error=ocolos.err --pid-file=ocolos.pid
-## the command to initialize the db for your benchmark 
-init_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-db=ocolos_db --tables=10 --table-size=10000 --db-ps-mode=disable  prepare
-## the command to run your benchmark 
-run_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_write_only.lua  --time=30000 --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-db=ocolos_db --tables=10 --table-size=10000 --range_selects=off --db-ps-mode=disable --report-interval=1 --percentile=90 --threads=48 run
+server_cmd=/home/wrf/install/mysql_dfot/bin/mysqld --defaults-file=/home/wrf/scripts/test/mysql/sysbench/my.cnf.8u32g --port=3306
+init_benchmark_cmd=/usr/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-password=123456 --mysql-db=sysbench --tables=64 --table-size=10000000 --time=180 --report-interval=10 --threads=32  prepare
+run_benchmark_cmd=/use/bin/sysbench /usr/share/sysbench/oltp_read_only.lua --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=ocolos --mysql-password=123456 --mysql-db=sysbench --tables=64 --table_size=10000000 --time=180 --report-interval=10 --threads=32 run
