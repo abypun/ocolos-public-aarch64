@@ -83,7 +83,7 @@ void run_perf2bolt(const ocolos_env*);
  * Llvm-bolt will create a BOLTed binary by taking the 
  * perf2bolt's output and original server binary.
  */
-unordered_map<long, func_info> run_llvmbolt(const ocolos_env*);
+unordered_map<long, func_info> run_llvmbolt(string bolt_info_path);
 
 
 

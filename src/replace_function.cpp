@@ -129,17 +129,11 @@ void before_main(){
       }
    }	
 
-   printf("[tracee (lib)] The virtual address of insert_machine_code() is: %p\n", insert_machine_code);
-   // write the virtual address of insert_machine_code() to addr.txt
-   FILE *file = fopen("/data/wrf/ocolos_data/target.txt", "w");
-   if (file) {
-      fprintf(file, "%lx %d", (long)insert_machine_code, getpid());
-      fclose(file);
-   } else {
-      printf("[tracee (lib)] Failed to open target.txt\n");
-   }
+   printf("\n[tracee (lib)] pid: %d, insert_machine_code: %p\n", getpid(), insert_machine_code);
 
    // 动态确认页大小
+   // TODO：用户配置默认留空，如果用户主动配置，则校验
+   // 校验成功则使用，校验失败后以环境配置为准并打印警告
    MMAP_PAGE_SIZE = sysconf(_SC_PAGESIZE);
    MMAP_PAGE_OFFSET = MMAP_PAGE_SIZE - 1;
    printf("[tracee (lib)] MMAP_PAGE_SIZE: %lx\n", MMAP_PAGE_SIZE);

@@ -4,37 +4,53 @@
 
 using namespace std;
 
-int main(){
-   ocolos_env ocolos_environ;
-   void* lib_addr;
+typedef struct tracer_args {
+    pid_t target_pid;
+    void* lib_addr;
+    string boltinfo_path;
+    string cmd_path;
+} tracer_args;
 
-   // 删除/data/wrf/ocolos_data/target.txt
-   // system("rm -rf /data/wrf/ocolos_data/target.txt");
+void parse_args(int argc, char* argv[], tracer_args &args) {
+    args.target_pid = 0;
+    args.lib_addr = 0;
+    args.boltinfo_path = "";
 
-   pid_t target_pid = 0;
-   // pid_t target_pid = fork();
-   // if (target_pid == 0){
-   //    char* ld_pre = "LD_PRELOAD=/home/wrf/codes/ocolos-public-aarch64/replace_function.so";
-   //    string exe_cmd = ocolos_environ.run_server_cmd;
-   //    char** argv = split_str_2_char_array(exe_cmd);
-   //    putenv(ld_pre);
-   //    char **envp = environ;
-   //    execve(argv[0], argv, envp);
-   // } else {
-   // sleep(10);
-   // 轮询/data/wrf/ocolos_data/target.txt，如果存在且有内容，则读取内容，否则等待1s后继续轮询
-   while (true) {
-      FILE *file = fopen("/data/wrf/ocolos_data/target.txt", "r");
-      if (file) {
-         fscanf(file, "%lx %d", &lib_addr, &target_pid);
-         fclose(file);
-         break;
-      }
-      sleep(1);
+    for (int i = 1; i < argc; i += 2) {
+        if (i + 1 >= argc) {
+            cerr << "[tracer] Invalid arguments" << endl;
+            exit(1);
+       }
+       
+       string arg = argv[i];
+       string value = argv[i + 1];
+       
+       if (arg == "--target-pid") {
+           args.target_pid = stoi(value);
+       } else if (arg == "--lib-addr") {
+           args.lib_addr = (void*)stoull(value, nullptr, 16);
+       } else if (arg == "--bolt-info") {
+           args.boltinfo_path= value;
+       } else {
+           cerr << "[tracer] Unknown argument: " << arg << endl;
+           exit(1);
+       }
    }
+   
+   if (args.target_pid == 0 || args.lib_addr == 0 || args.boltinfo_path.empty()) {
+       cerr << "[tracer] Missing required arguments" << endl;
+       exit(1);
+   }
+}
+
+// ./tracer --target-pid 12345 --lib-addr 0x1234 --bolt-info /path/to/bolt.txt
+int main(int argc, char* argv[]) {
+   ocolos_env ocolos_environ;
+   tracer_args args;
+   parse_args(argc, argv, args);
 
       // sample + perf2bolt + llvm-bolt
-      unordered_map<long, func_info> bolted_func = run_llvmbolt(&ocolos_environ);
+      unordered_map<long, func_info> bolted_func = run_llvmbolt(args.boltinfo_path);
 
       // get all functions that have location changed		
       unordered_map<long, func_info> func_with_addr = get_func_with_original_addr(&ocolos_environ);
@@ -83,7 +99,7 @@ int main(){
 
       // to pause all running threads of the target process
       // and then get the PIDs(tid) of these threads
-      vector<pid_t> tids = pause_and_get_tids(target_pid);
+      vector<pid_t> tids = pause_and_get_tids(args.target_pid);
       for (auto tid : tids) {
          printf("[tracer] tid: %d\n", tid);
       }
@@ -123,7 +139,7 @@ int main(){
       vector<pid_t> tids_have_code_insertion;
 #ifdef Intel64
       for (unsigned i=0; i<tids.size(); i++){
-         if(!ptrace_single_step_intel64(tids[i], lib_addr, regs, old_regs, fregs)){
+         if(!ptrace_single_step_intel64(tids[i], args.lib_addr, regs, old_regs, fregs)){
             continue;
          }
          ptrace_cont_intel64(tids[i], regs, old_regs, fregs);
@@ -133,7 +149,7 @@ int main(){
 #ifdef AArch64
       for (unsigned i=0; i<tids.size(); i++){
          printf("[tracer] tid: %d, ptrace_single_step_aarch64\n", tids[i]);
-         if(!ptrace_single_step_aarch64(tids[i], lib_addr, regs, old_regs, fregs)){
+         if(!ptrace_single_step_aarch64(tids[i], args.lib_addr, regs, old_regs, fregs)){
             continue;
          }
          printf("[tracer] tid: %d, ptrace_cont_aarch64\n", tids[i]);
@@ -196,7 +212,7 @@ int main(){
       // will be sent to llvm-bolt to produce a C1 round BOLTed binary.
       // C1 round's BOLTed binary is used for C1 round's code replacement
       #ifdef CONT_OPT
-      run_perf_record(target_pid, &ocolos_environ);
+      run_perf_record(args.target_pid, &ocolos_environ);
       #endif
    // }
 }

@@ -375,15 +375,12 @@ void run_perf2bolt(const ocolos_env* ocolos_environ){
    #endif
 }
 
-
-
-
-unordered_map<long, func_info> run_llvmbolt(const ocolos_env* ocolos_environ){
+unordered_map<long, func_info> run_llvmbolt(string bolt_info_path) {
    #ifdef TIME_MEASUREMENT
    auto begin = std::chrono::high_resolution_clock::now();
    #endif
 
-   FILE *fp1 = fopen("/data/wrf/ocolos_data/bolt.log", "r");
+   FILE *fp1 = fopen(bolt_info_path.c_str(), "r");
    if (fp1 == NULL){
       printf("Failed to open bolt log\n" );
       exit(-1);
