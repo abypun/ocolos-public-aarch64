@@ -5,7 +5,8 @@
 
 using namespace std;
 
-void extract_call_sites(FILE* pFile, unordered_map<long, func_info> moved_func, unordered_map<long, func_info> func_in_call_stack, const ocolos_env* ocolos_environ){
+void extract_call_sites(FILE* pFile, unordered_map<long, func_info> moved_func, unordered_map<long, func_info>
+func_in_call_stack, const ocolos_env* ocolos_environ){
    // <starting address, call_sites_info>
    unordered_map<long, call_site_info> call_sites;
    const string file = ocolos_environ->call_sites_all_bin;
@@ -39,13 +40,13 @@ void extract_call_sites(FILE* pFile, unordered_map<long, func_info> moved_func, 
             fwrite(&machine_code_address, sizeof(long), 1, pFile);
             fwrite(&machine_code_size, sizeof(long), 1, pFile);
             uint8_t buffer[machine_code_line.size()+1];
-            
+
             buffer[0]= (uint8_t)232;
             for (unsigned i=0; i<machine_code_line.size(); i++){
                buffer[i+1] = machine_code_line[i];
             }
             fwrite (buffer , sizeof(uint8_t), machine_code_line.size()+1, pFile);
-         }  
+         }
       }
 #endif
 #ifdef AArch64
@@ -74,7 +75,7 @@ void extract_call_sites(FILE* pFile, unordered_map<long, func_info> moved_func, 
             }
             //cout<<endl;
             fwrite (buffer , sizeof(uint8_t), machine_code_line.size(), pFile);
-         }  
+         }
       }
 #endif
    }
