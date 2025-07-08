@@ -65,9 +65,6 @@ typedef struct func_info {
  * that are read from the config file.
  */
 typedef struct ocolos_env {
-    std::unordered_map<std::string, std::string> configs;
-
-    std::string dir_path;
     std::string bolted_binary_path;
     std::string ld_preload_path;
     std::string bolted_function_bin;
@@ -79,25 +76,15 @@ typedef struct ocolos_env {
     std::string call_sites_all_bin;
     std::string call_sites_list_bin;
 
-    std::string perf_path;
     std::string nm_path;
     std::string objdump_path;
-    std::string llvmbolt_path;
-    std::string perf2bolt_path;
 
     std::string target_binary_path;
     std::string run_server_cmd;
     std::string init_benchmark_cmd;
     std::string run_benchmark_cmd;
 
-    std::string client_binary_path;
-    std::string db_name;
-    std::string db_user_name;
-
-    std::string lib_path;
     std::string tmp_data_path;
-
-    int listen_fd;
 
     /*
      * Constructor function that initialize all strings

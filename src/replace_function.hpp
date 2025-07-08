@@ -1,7 +1,4 @@
 #define UNW_LOCAL_ONLY
-#define LD_PRELOAD_PATH "LD_PRELOAD=replace_function.so\0"
-#define MMAP_PAGE_SIZE 4 * 1024         // huge page: 2*1024*1024
-#define MMAP_PAGE_OFFSET 0b111111111111 // huge page: 0b111111111111111111111
 
 #include <arpa/inet.h>
 #include <cstring>
@@ -36,8 +33,6 @@ extern char **environ;
  * config file.
  */
 typedef struct ocolos_env {
-    std::unordered_map<std::string, std::string> configs;
-
     std::string tmp_data_path;
 
     std::string bolted_function_bin;
@@ -78,16 +73,6 @@ void before_main(void) __attribute__((constructor(101)));
  * executing.
  */
 void insert_machine_code(void);
-
-/*
- * create a tcp socket for receiving message sending from Ocolos' tracer.
- */
-void create_tcp_socket(int &listen_fd, struct sockaddr_in &servaddr);
-
-/*
- * Receive the data_path from the message sending from Ocolos' tracer.
- */
-std::string get_data_path(int listen_fd);
 
 /*
  * Convert a string into a long integer type.

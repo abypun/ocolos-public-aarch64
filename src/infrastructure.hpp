@@ -1,65 +1,11 @@
 #include "utils.hpp"
 
 /*
- * functions in infrastructure.h perform
- * (1) create target process and communicate with target process to
- *     get starting address of `replace_function()`
- * (2) create perf, perf2bolt, llvm-bolt to generate the optimized
- *     binary.
- * (3) prepare for the machine code to be inserted to the target
- *     process. (extract machine code and then change the target
- *     of call instructions)
- */
-void initialize_benchmark(const ocolos_env *);
-void run_benchmark(const ocolos_env *);
-
-/*
- * tracer to create the target process to
- * be optimized. (e.g. MySQL server process)
- * The LD_PRELOAD library is added as the
- * environment variable
- */
-void create_target_server_process(const ocolos_env *);
-
-/*
- * create tcp socket. The tcp socket is created
- * to accept the message fromthe ld_preload library
- * to get the starting address of `replace_function()`,
- * which does the machine code insertion work.
- */
-void create_tcp_socket(int listen_fd, struct sockaddr_in &servaddr);
-
-/*
- * accept message from target process then convert the
- * message into a pointer that represent the address of
- * the `replace_function()` function in the ld_preload
- * lib code.
- */
-void *get_lib_addr(int listen_fd);
-
-void send_data_path(const ocolos_env *);
-
-/*
- * Create a new process that runs Linux perf. Perf will
- * attach to the server process and collect profiles
- * during server process's running.
- */
-void run_perf_record(int target_pid, const ocolos_env *);
-
-/*
- * Create a new process that runs BOLT's perf2bolt.
- * Perf2bolt will create a BOLT readable profile data
- * by taking the perf's output profiles and the original
- * server binary.
- */
-void run_perf2bolt(const ocolos_env *);
-
-/*
  * Create a new process that runs BOLT's llvm-bolt.
  * Llvm-bolt will create a BOLTed binary by taking the
  * perf2bolt's output and original server binary.
  */
-std::unordered_map<long, func_info> run_llvmbolt(const ocolos_env *);
+std::unordered_map<long, func_info> run_llvmbolt(std::string bolt_info_path);
 
 /*
  * Read the output from `nm` to get the starting address,
